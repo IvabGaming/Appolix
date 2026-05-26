@@ -1,3 +1,0 @@
-root::0:10:Superuser:/usr/root:/bin/sh
-guest::10:10:Guest:/usr/guest:/bin/sh
-

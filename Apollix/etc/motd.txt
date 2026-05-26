@@ -1,5 +1,0 @@
-Welcome to the Unix-like HTML/JS Core Simulator (v1.0.0).
-All terminal commands are executed directly out of the physical /bin folder.
-User sandboxes are assigned inside the physical /usr directory.
-
-Type 'ls' to see the folder layout, or 'adduser' to make a new user profile.
