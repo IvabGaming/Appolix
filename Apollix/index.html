@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Unix V7 Pure HTML/JS Simulator</title>
+  <style>
+    /* Pure CSS to create the authentic retro green CRT monitor look */
+    body {
+      background-color: #000;
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      padding: 20px;
+      margin: 0;
+      overflow-x: hidden;
+      /* Subtle scanline texture overlay effect */
+      background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+      background-size: 100% 4px, 6px 100%;
+    }
+
+    /* Main scrollable log display area for past command entries */
+    #output {
+      white-space: pre-wrap;
+      margin-bottom: 10px;
+      line-height: 1.4;
+      text-shadow: 0 0 3px #00ff00; /* Subtle green phosphor text glow */
+    }
+
+    /* Horizontal flex container keeping prompt and input box inline */
+    .input-line {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Displays 'root@unixv7:/usr/root #' dynamically */
+    .prompt {
+      margin-right: 8px;
+      white-space: pre;
+      user-select: none;
+      text-shadow: 0 0 3px #00ff00;
+    }
+
+    /* The transparent, borderless typing input bar */
+    #input {
+      background: transparent;
+      color: #00ff00;
+      border: none;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      outline: none;
+      flex-grow: 1;
+      padding: 0;
+      text-shadow: 0 0 3px #00ff00;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. The main log screen container. shell.js will append text here -->
+  <div id="output"></div>
+
+  <!-- 2. The active input prompt bar -->
+  <div class="input-line">
+    <span class="prompt"></span>
+    <input type="text" id="input" autofocus autocomplete="off" spellcheck="false">
+  </div>
+
+  <!-- 3. Inject your physical shell module engine thread -->
+  <script type="module" src="shell.js"></script>
+
+  <script>
+    // A quick user experience trick: Clicking anywhere on the screen 
+    // will instantly force focus back onto your hidden typing cursor bar.
+    document.addEventListener('click', () => {
+      document.getElementById('input').focus();
+    });
+  </script>
+</body>
+</html>
