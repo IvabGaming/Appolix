@@ -1,0 +1,11 @@
+--- COMMANDS ---
+-adduser
+-cat
+-cd
+-clear
+-date
+-ls
+-rm
+-su
+-touch
+-whoami
