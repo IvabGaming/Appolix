@@ -1,0 +1,19 @@
+{
+  "name": "unix-v7-simulator",
+  "version": "1.0.0",
+  "description": "HTML/JS Unix Terminal Simulator running on physical folders",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^31.0.0"
+  },
+  "keywords": [
+    "unix",
+    "simulator",
+    "retro"
+  ],
+  "author": "Ivabgaming",
+  "license": "ISC"
+}
