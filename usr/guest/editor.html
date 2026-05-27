@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { background: #1a1a1a; color: #fff; font-family: monospace; padding: 20px; }
+    textarea { width: 100%; height: 250px; background: #2a2a2a; color: #00ff00; border: 1px solid #444; font-family: monospace; font-size: 16px; padding: 10px; box-sizing: border-box; }
+    input { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 8px; font-family: monospace; width: 200px; margin-right: 10px; }
+    button { background: #00ff00; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+    .exit-btn { background: #ff0000; color: white; }
+    #log { margin-top: 15px; color: #888; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h2>Apollix Integrated Graphical Editor</h2>
+  
+  <input type="text" id="filename" placeholder="filename.txt">
+  <button id="touch-btn">Run 'touch' via App</button>
+  
+  <br><br>
+  <textarea id="textbox" placeholder="Type text content here..."></textarea>
+  
+  <br><br>
+  <button id="save-btn">Run 'echo' File Save</button>
+  <button id="exit-btn" class="exit-btn">← Exit to Shell</button>
+
+  <div id="log">Status: Awaiting user input commands...</div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    const logDiv = document.getElementById('log');
+
+    // 1. CALLS THE '/bin/touch' COMMAND IN BACKEND
+    document.getElementById('touch-btn').addEventListener('click', async () => {
+      const name = document.getElementById('filename').value.trim();
+      if (!name) return alert("Please specify a filename first.");
+
+      // Pass the instruction straight through the Apollix execute engine pipeline
+      const result = await window.apollix.execute(`touch ${name}`);
+      logDiv.textContent = `Executed: 'touch ${name}'. Core response: ${result || "Success (Silent)"}`;
+    });
+
+    // 2. CALLS THE '/bin/echo' REDIRECTION COMMAND IN BACKEND
+    document.getElementById('save-btn').addEventListener('click', async () => {
+      const name = document.getElementById('filename').value.trim();
+      const content = document.getElementById('textbox').value;
+      if (!name) return alert("Please specify a target filename first.");
+
+      // Run your actual /bin/echo code including your output redirect operator
+      const cmdString = `echo ${content} > ${name}`;
+      const result = await window.apollix.execute(cmdString);
+      logDiv.textContent = `Executed command pipeline: '${cmdString}'. Result: ${result || "File updated successfully."}`;
+    });
+
+    // 3. Drops view assignment cleanly back onto terminal screen
+    document.getElementById('exit-btn').addEventListener('click', () => {
+      ipcRenderer.send('change-view', 'index.html');
+    });
+  </script>
+</body>
+</html>

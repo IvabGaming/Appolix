@@ -1,42 +1,35 @@
-const { app, BrowserWindow, Menu } = require('electron');
+// main.js
+const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
 
+let mainWindow;
+
 function createWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 950,
     height: 650,
     backgroundColor: '#000000',
-    title: "Unix V7 HTML Simulator",
-    icon: path.join(__dirname, 'icon.png'), // Optional application icon shortcut
+    title: "Apollix System Core",
     webPreferences: {
-      nodeIntegration: true,        // Critical: Grants shell.js direct access to physical fs tools
-      contextIsolation: false,      // Allows modular scripts to cross-communicate natively
+      nodeIntegration: true,        
+      contextIsolation: false,      
       preload: path.join(__dirname, 'preload.js')
     }
   });
 
-  // Remove the standard modern window menu bar to preserve the retro terminal aesthetic
   Menu.setApplicationMenu(null);
-
-  // Load your physical user interface layer
   mainWindow.loadFile('index.html');
-
-  // Developer Tool Toggle: Uncomment the line below if you want to inspect layout issues live
-  // mainWindow.webContents.openDevTools();
 }
 
-// Spin up the app window once Electron finishes tracking initialization hooks
-app.whenReady().then(() => {
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+// IPC Listener: Swaps the active window file view safely
+ipcMain.on('change-view', (event, targetFile) => {
+  if (mainWindow) {
+    mainWindow.loadFile(targetFile);
+  }
 });
 
-// Cleanly kill background processes when windows close across Mac, Windows, and Linux
+app.whenReady().then(createWindow);
+
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  if (process.platform !== 'darwin') app.quit();
 });

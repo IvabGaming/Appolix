@@ -1,106 +1,123 @@
-// Import Node's physical file system and path utilities
+// shell.js
 const fs = require('fs');
 const path = require('path');
 
-// Global application state variables
 export let currentUser = "root";
-export let currentDirectory = "usr/root"; // Defaults cleanly to /usr/root on boot
+export let currentDirectory = "usr/root";
 
-// Grab references to our HTML screen elements
+let commandHistory = [];
+let historyIndex = -1;
+
 const outputDisplay = document.getElementById('output');
 const inputField = document.getElementById('input');
 const promptDisplay = document.querySelector('.prompt');
 
-/**
- * Updates the prompt display string dynamically based on the current state.
- * Example output: root@unixv7:/usr/root # 
- */
 export function updatePrompt() {
   const symbol = currentUser === "root" ? "#" : "$";
-  // Ensure the path always displays with a leading forward slash
   const displayPath = currentDirectory.startsWith('/') ? currentDirectory : `/${currentDirectory}`;
-  promptDisplay.textContent = `${currentUser}@unixv7:${displayPath} ${symbol} `;
+  if (promptDisplay) {
+    promptDisplay.textContent = `${currentUser}@unixv7:${displayPath} ${symbol} `;
+  }
 }
 
-/**
- * Safely changes the active shell user and working directory state variables.
- * Accessible by commands like su.js and cd.js.
- */
 export function setShellState(newUser, newDir) {
   if (newUser !== null && newUser !== undefined) currentUser = newUser;
   if (newDir !== null && newDir !== undefined) currentDirectory = newDir;
   updatePrompt();
 }
 
-// Global Enter Key Event Loop
-inputField.addEventListener('keydown', async (event) => {
-  if (event.key === 'Enter') {
-    const rawInput = inputField.value.trim();
-    inputField.value = ""; // Instantly clear the typing field
-    
-    // If the user just hits enter without typing anything
-    if (rawInput === "") {
-      outputDisplay.textContent += promptDisplay.textContent + "\n";
-      return;
-    }
-
-    // Print the command line back to the terminal history log
-    outputDisplay.textContent += promptDisplay.textContent + rawInput + "\n";
-
-    // Split input into command name and arguments array
-    const args = rawInput.split(/\s+/);
-    const commandName = args.shift().toLowerCase();
-
-    // Calculate the absolute path to the requested JS command file on the drive
-    const commandFilePath = path.join(process.cwd(), 'bin', `${commandName}.js`);
-
-    // Check if the command script physically exists in the bin/ folder
-    if (fs.existsSync(commandFilePath)) {
-      try {
-        // Dynamically import the physical command module file script
-        const commandModule = await import(`./bin/${commandName}.js`);
-        
-        // Execute the run function inside the command and wait for its string return
-        const result = await commandModule.run(args);
-        
-        if (result !== undefined) {
-          outputDisplay.textContent += result + "\n";
-        }
-      } catch (err) {
-        outputDisplay.textContent += `${commandName}: execution failure -> ${err.message}\n`;
-      }
-    } else {
-      // Fallback if the script does not exist physically in your bin folder
-      outputDisplay.textContent += `${commandName}: command not found\n`;
-    }
-
-    // Force update the prompt layout and auto-scroll the screen downward
-    updatePrompt();
-    window.scrollTo(0, document.body.scrollHeight);
-  }
-});
-
 /**
- * Boot Routine: Physically reads your etc/motd.txt file off your hard drive
- * on startup and displays it to the screen.
+ * THE APOLLIX EXECUTOR API
+ * This function can be called from ANY HTML file running in the app to execute a /bin command.
+ * Example: window.apollix.execute("touch dynamic_file.txt");
  */
+export async function executeCommand(rawInput) {
+  const cleanInput = rawInput.trim();
+  if (cleanInput === "") return "";
+
+  const args = cleanInput.split(/\s+/);
+  const commandName = args.shift().toLowerCase();
+  const commandFilePath = path.join(process.cwd(), 'bin', `${commandName}.js`);
+
+  if (fs.existsSync(commandFilePath)) {
+    try {
+      const commandModule = await import(`./bin/${commandName}.js`);
+      const result = await commandModule.run(args);
+      return result !== undefined ? result : "";
+    } catch (err) {
+      return `${commandName}: execution failure -> ${err.message}`;
+    }
+  } else {
+    return `${commandName}: command not found`;
+  }
+}
+
+// Attach the API to the global window object so HTML iframes/pages can see it
+window.apollix = {
+  execute: executeCommand,
+  getState: () => ({ user: currentUser, dir: currentDirectory }),
+  setState: setShellState
+};
+
+// Standard terminal keyboard input hook
+if (inputField) {
+  inputField.addEventListener('keydown', async (event) => {
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (commandHistory.length === 0) return;
+      if (historyIndex === -1) historyIndex = commandHistory.length - 1;
+      else if (historyIndex > 0) historyIndex--;
+      inputField.value = commandHistory[historyIndex];
+    }
+    else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (historyIndex === -1) return;
+      if (historyIndex < commandHistory.length - 1) {
+        historyIndex++;
+        inputField.value = commandHistory[historyIndex];
+      } else {
+        historyIndex = -1;
+        inputField.value = "";
+      }
+    }
+    else if (event.key === 'Enter') {
+      const rawInput = inputField.value.trim();
+      inputField.value = "";
+      
+      if (rawInput === "") {
+        outputDisplay.textContent += promptDisplay.textContent + "\n";
+        return;
+      }
+
+      commandHistory.push(rawInput);
+      historyIndex = -1;
+      outputDisplay.textContent += promptDisplay.textContent + rawInput + "\n";
+
+      const output = await executeCommand(rawInput);
+      if (output) {
+        outputDisplay.textContent += output + "\n";
+      }
+
+      updatePrompt();
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+  });
+}
+
 async function bootSystem() {
   const motdPath = path.join(process.cwd(), 'etc', 'motd.txt');
-  
-  try {
-    if (fs.existsSync(motdPath)) {
-      const motdText = fs.readFileSync(motdPath, 'utf8');
-      outputDisplay.textContent += motdText;
-    } else {
-      outputDisplay.textContent += "Welcome to Research Unix, 7th Edition.\n\n";
+  if (outputDisplay) {
+    try {
+      if (fs.existsSync(motdPath)) {
+        outputDisplay.textContent += fs.readFileSync(motdPath, 'utf8');
+      } else {
+        outputDisplay.textContent += "Welcome to Research Unix, 7th Edition.\n\n";
+      }
+    } catch (err) {
+      outputDisplay.textContent += "System booted in standalone mode.\n\n";
     }
-  } catch (err) {
-    outputDisplay.textContent += "System booted in standalone configuration.\n\n";
   }
-  
-  // Render the starting prompt line
   updatePrompt();
 }
 
-// Fire up the boot sequence when the script initializes
 bootSystem();
